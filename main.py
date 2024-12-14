@@ -40,12 +40,28 @@ def main(page: ft.Page):
     # Placeholder for photos
     photo_list_view = ft.ListView(expand=True)
 
-    def add_photo(e):
-        # Simulate adding a photo (use a placeholder image or a selected file path)
-        photo_path = f"https://via.placeholder.com/300x200.png?text=Photo+{len(photo_manager.get_photos()) + 1}"
-        photo_manager.add_photo(photo_path)
-        photo_list_view.controls.append(ft.Image(src=photo_path, width=300, height=200))
-        page.update()
+    def open_camera(e):
+        def on_result(result):
+            if result.files:
+                photo_path = result.files[0].path
+                photo_manager.add_photo(photo_path)
+                photo_list_view.controls.append(ft.Image(src=photo_path, width=300, height=200))
+                page.update()
+
+        page.dialog = ft.FilePicker(on_result=on_result, capture="camera")
+        page.dialog.pick_files()
+
+    def upload_photo(e):
+        def on_result(result):
+            if result.files:
+                for file in result.files:
+                    photo_path = file.path
+                    photo_manager.add_photo(photo_path)
+                    photo_list_view.controls.append(ft.Image(src=photo_path, width=300, height=200))
+                page.update()
+
+        page.dialog = ft.FilePicker(on_result=on_result)
+        page.dialog.pick_files(allow_multiple=True)
 
     def save_as_pdf():
         def save_file(e):
@@ -83,7 +99,7 @@ def main(page: ft.Page):
             page.update()
 
         # Ask for file name
-        file_name_input = ft.TextField(label="Enter file name", required=True)
+        file_name_input = ft.TextField(label="Enter file name")
         save_button = ft.ElevatedButton("Save", on_click=save_file)
 
         page.dialog = ft.AlertDialog(
@@ -95,15 +111,16 @@ def main(page: ft.Page):
         page.update()
 
     # Buttons for actions
-    submit_button = ft.ElevatedButton("Submit", on_click=lambda e: save_as_pdf())
-    add_photo_button = ft.ElevatedButton("Add Photo", on_click=add_photo)
+    add_photo_button_camera = ft.ElevatedButton("Take Photo", on_click=open_camera)
+    add_photo_button_upload = ft.ElevatedButton("Upload Photo", on_click=upload_photo)
     convert_pdf_button = ft.ElevatedButton("Convert to PDF", on_click=lambda e: save_as_pdf())
+    submit_button = ft.ElevatedButton("Submit", on_click=lambda e: save_as_pdf())
 
     # Add components to page
     page.add(ft.Text("Vehicle Damage Checklist", size=20, weight="bold"))
     page.add(ft.Column(checkboxes))
     page.add(ft.Text("Photos:", size=16, weight="bold"))
     page.add(photo_list_view)
-    page.add(ft.Row([add_photo_button, convert_pdf_button, submit_button], alignment="center"))
+    page.add(ft.Row([add_photo_button_camera, add_photo_button_upload, convert_pdf_button, submit_button], alignment="center"))
 
 ft.app(target=main)
